@@ -108,9 +108,9 @@ disqusShortname = ""
       url = "projects/Project3"
 
     [[params.tiles.showcase]]
-      title = "Project 4"
-      subtitle = "Nisl Sed Aliquam"
-      image = "pic04.jpg"
+      title = "Trump's Approval Margins"
+      subtitle = "Analysis of Trump's approval ratings from 2016 to 2020"
+      image = "projects/pic04.jpg"
       url = "projects/Project4"
 
     #[[params.tiles.showcase]]
