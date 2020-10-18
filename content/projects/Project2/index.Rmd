@@ -42,8 +42,6 @@ library(patchwork)
 library(scales)
 ```
 
-
-
 # Are the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not? Let's see...
 
 ## Loading the data
