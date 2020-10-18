@@ -1,0 +1,135 @@
+---
+title: "Trump's Approval Margins"
+author: "Riccardo Persico"
+date: "18/10/2020"
+output: html_document
+---
+
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=6.75, 
+  fig.height=6.75,
+  fig.align = "center"
+)
+```
+
+
+```{r load-libraries, include=FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(lubridate)
+library(here)
+library(skimr)
+library(janitor)
+library(httr)
+library(readxl)
+library(vroom)
+library(infer)
+library(ggplot2)
+library(ggrepel)
+```
+
+## Loading the data
+
+```{r, trump_approval_margins_data, cache=TRUE}
+# Import approval polls data
+approval_polllist <- read_csv(here::here('data', 'approval_polllist.csv'))
+
+# or directly off fivethirtyeight website
+# approval_polllist <- read_csv('https://projects.fivethirtyeight.com/trump-approval-data/approval_polllist.csv') 
+
+glimpse(approval_polllist)
+
+# Use `lubridate` to fix dates, as they are given as characters.
+```
+
+```{r, converting_to_dates}
+# Use `lubridate` to fix dates, as they are given as characters.
+
+library(lubridate)
+approval_polllist_converted <- approval_polllist %>% 
+  mutate(modeldate = mdy(modeldate),
+         startdate = mdy(startdate), 
+         enddate = mdy(enddate))
+
+approval_polllist_converted
+```
+
+## Create a plot
+
+Calculating the average net approval rate (approve- disapprove) for each week since President Trump got into office.
+
+Image to plot:
+
+```{r trump_margins, echo=FALSE, out.width="100%"}
+knitr::include_graphics(here::here("images", "trump_approval_margin.png"), error = FALSE)
+```
+
+```{r, trump_margins_weekly}
+    
+weekly_net_approval <- approval_polllist_converted %>% filter(subgroup == "Voters") %>% 
+  mutate(net_approval = approve - disapprove,
+         week = isoweek(enddate),
+         year = year(enddate)) %>%
+  group_by(year, week) %>%
+  summarise(mean_weekly_nar = mean(net_approval),
+            sd_weekly_nar = sd(net_approval), 
+            count_weekly_nar = n(),
+            t_distribution=qt(0.975, count_weekly_nar-1),
+            se_weekly_nar = sd_weekly_nar/sqrt(count_weekly_nar),
+            interval_value=t_distribution*se_weekly_nar,
+            low_ci=mean_weekly_nar-interval_value,
+            high_ci=mean_weekly_nar+interval_value) %>% 
+  na.omit()
+
+weekly_net_approval
+```
+
+
+```{r, trump_margins_plot, fig.width=11,fig.height=5.5}
+
+ggplot(weekly_net_approval, aes(x = week, y = mean_weekly_nar, colour=factor(year))) + 
+  facet_wrap(~year) +
+  geom_ribbon(aes(ymin = low_ci, ymax = high_ci, colour=factor(year), fill=factor(year)), alpha=0.15) +
+  scale_x_continuous(breaks = seq(0,53, by = 13), limits = c(0,53)) +
+  scale_y_continuous(breaks = seq(-20,7.5, by = 2.5), limits = c(-21,7.5)) +
+  geom_hline(yintercept=0, color='orange') +
+  geom_point() + 
+  geom_line() +
+  theme(legend.position = "none") +
+  ggtitle("Estimating Net Approval (approve-disapprove) for Donald Trump", subtitle = "Weekly average of all polls") +
+  labs(y="Average Net Approval (%)", x="Week of the year")
+
+```
+
+## Compare Confidence Intervals
+
+Comparing the confidence intervals for `week 15` (6-12 April 2020) and `week 34` (17-23 August 2020).
+
+```{r, CI_comparaison}
+
+ci_wna <- weekly_net_approval %>% 
+  mutate(ci = interval_value * 2)
+
+ci_wna
+
+subset(ci_wna, year==2020 & week==15)$ci
+subset(ci_wna, year==2020 & week==34)$ci
+
+```
+
+
+Apart from the very beginning of 2017, the Trump Approval Rate (TAR) has been consistently negative, characterized by a sensible amount of variability throughout time. The graphs shows that there have been periods in which the estimate of the Average TAR was fairly accurate, with a tight CI (as for the beginning of 2019 or April-May 2020). In other cases, like end of 2017-beginning of 2018, the true Average TAR has been much harder to infer from the data at our disposal. 
+  
+It appears that, with the US presidential elections coming up in November 2020, it will be much harder to know the true Average TAR since the CI in the last 20 weeks has been consistently increasing, thus making the prediction of the TAR mean less certain.
+

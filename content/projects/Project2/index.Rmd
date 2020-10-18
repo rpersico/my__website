@@ -44,12 +44,16 @@ library(scales)
 
 
 
-Are the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not? Let's see...
+# Are the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not? Let's see...
+
+## Loading the data
 
 ```{r load-movies-data}
 movies <- read_csv(here::here("data", "movies.csv"))
 glimpse(movies)
 ```
+
+## Summarizing it and plotting it
 
 ```{r, intervals_graph}
 
@@ -87,6 +91,7 @@ ggplot(summary_data, aes(x=mean, y=reorder(director, mean)))+
 ```
 I have already calculated the confidence intervals for the mean ratings of these two directors and as you can see they overlap. 
 
+## Running the hypotesis tests
 
 ```{r, t_test}
 #NULL hypothesis : Steven Spielberg's mean IMDB rating = Tim Burton's mean IMDB rating
