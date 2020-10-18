@@ -1,37 +1,247 @@
 ---
-title: "Hello R Markdown"
-author: "Frida Gomam"
-date: 2015-07-23T21:13:14-05:00
-categories: ["R"]
-tags: ["R Markdown", "plot", "regression"]
+title: "Youth Risk Behavior Surveillance"
+author: "Riccardo Persico"
+date: "18/10/2020"
+output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(collapse = TRUE)
-```
+```{r, setup, echo=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
 
-# R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-fit <- lm(dist ~ speed, data = cars)
-fit
-```
-
-# Including Plots
-
-You can also embed plots. See Figure \@ref(fig:pie) for example:
-
-```{r pie, fig.cap='A fancy pie chart.', tidy=FALSE}
-par(mar = c(0, 1, 0, 1))
-pie(
-  c(280, 60, 20),
-  c('Sky', 'Sunny side of pyramid', 'Shady side of pyramid'),
-  col = c('#0292D8', '#F7EA39', '#C4B632'),
-  init.angle = -50, border = NA
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=6.75, 
+  fig.height=6.75,
+  fig.align = "center"
 )
 ```
+
+
+```{r load-libraries, echo=FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(GGally)
+library(readxl)
+library(here)
+library(skimr)
+library(janitor)
+library(broom)
+library(tidyquant)
+library(infer)
+library(openintro)
+library(tidyquant)
+library(reshape2)
+library(patchwork)
+library(scales)
+```
+
+
+# Youth Risk Behavior Surveillance
+
+Every two years, the Centers for Disease Control and Prevention conduct the [Youth Risk Behavior Surveillance System (YRBSS)](https://www.cdc.gov/healthyyouth/data/yrbs/index.htm) survey, where it takes data from high schoolers (9th through 12th grade), to analyze health patterns. We selected group of variables from a random sample of observations during one of the years the YRBSS was conducted.
+
+## Load the data
+
+
+```{r}
+data(yrbss)
+glimpse(yrbss)
+```
+
+```{r, summary_yrbss, fig.width=12}
+
+# skimming data
+skim(yrbss)
+
+# summarizing statistics for age, height, weight, physically_active_7d, strength_training_7d
+
+cols <- c('age', 'height', 'weight', 'physically_active_7d', 'strength_training_7d')
+row_names <- c('min', 'max', 'mean', 'median', 'sd')
+
+# Removing NAs
+yrbss_cleaned <- yrbss[, cols] %>% na.omit()
+
+summary_vals <- yrbss_cleaned %>% summarise_each(funs(min))
+summary_vals <- append(summary_vals, yrbss_cleaned %>% summarise_each(funs(max)))
+summary_vals <- append(summary_vals, yrbss_cleaned %>% summarise_each(funs(mean)))
+summary_vals <- append(summary_vals, yrbss_cleaned %>% summarise_each(funs(median)))
+summary_vals <- append(summary_vals, yrbss_cleaned %>% summarise_each(funs(sd)))
+
+summary_matrix <- matrix(summary_vals, nrow = 5, dimnames = list(row_names, cols), byrow = TRUE)
+summary_matrix
+
+# Histogram for Age
+
+age_hist <- ggplot(yrbss_cleaned, aes(x=age)) + 
+  geom_histogram() +
+  labs(title = "17 years old are the most\n numerous in the sample", subtitle = '\nAge distribution', x= "\nAge", y="Count\n") +
+  theme_economist()
+
+# Histogram for height
+
+height_hist <- ggplot(yrbss_cleaned, aes(x=height)) + 
+  geom_histogram() +
+  labs(title = "Most respondents are around\n 1.7m tall", subtitle = '\nHeight distribution', x= "\nHeight", y="Count\n") +
+  theme_economist()
+
+# Histogram for weight
+
+weight_hist <- ggplot(yrbss_cleaned, aes(x=weight)) + 
+  geom_histogram()+
+  labs(title = "The weight distribution is\n heavily right skewed", subtitle = '\nWeight distribution', x= "\nWeight", y="Count\n") +
+  theme_economist()
+
+# Histogram for physically_active_7d
+
+physically_active_7d_hist <- ggplot(yrbss_cleaned, aes(x=physically_active_7d)) + 
+  geom_histogram()+
+  labs(title = "The respondents are \n very active or totally inactive", subtitle = '\nDaily distribution of physical activity', x= "\n# of days", y="Count\n") +
+  theme_economist()
+
+# Histogram for strength_training_7d
+
+strength_training_7d_hist <- ggplot(yrbss_cleaned, aes(x=strength_training_7d)) + 
+  geom_histogram()+
+  labs(title = "The respondents don't seem\n to enjoy strength training", subtitle = '\nDaily distribution of strength training', x= "\n# of days", y="Count\n") +
+  theme_economist()
+
+age_hist + height_hist + weight_hist + physically_active_7d_hist + strength_training_7d_hist
+
+```
+
+
+## Exploratory Data Analysis
+
+You will first start with analyzing the `weight` of participants in kilograms. Using visualization and summary statistics, describe the distribution of weights. How many observations are we missing weights from?
+
+```{r, eda_on_weight}
+
+yrbss_weight <- yrbss %>% 
+  summarise(mean_weight=mean(weight, na.rm=TRUE), 
+            sd_weight=sd(weight, na.rm=TRUE), 
+            count=count(weight, na.rm=TRUE))
+
+yrbss_weight
+
+ggplot(yrbss, aes(x=weight)) +
+  geom_density() +
+  labs(title="Distribution of weights amongst high schoolers", x= "Weight(kg)", y="Density")
+
+```
+Although we are missing 1,004 weight observations out of 13,583 observations, the graph clearly indicates a heavily right skewed distribution of weight amongst high schoolers.The peak is around 63kg, with a leptokurtic curve displaying a small cluster at around 115kg.
+
+  
+```{r}
+#new variable `physical_3plus`, which will be `yes` if they are physically active for at least 3 days a week, and `no` otherwise.
+yrbss <- yrbss %>% 
+  mutate(physical_3plus = ifelse(physically_active_7d >= 3, "yes", "no"),
+         physica_3plus_val = ifelse(physical_3plus == "no", 1, 0))
+
+yrbss %>% filter(!is.na(physical_3plus)) %>% 
+  group_by(physical_3plus) %>% 
+  summarise(count = n()) %>% 
+  mutate(prop= count/sum(count))
+
+```
+
+
+```{r, ci_not_active}
+#95% confidence interval for the population proportion of high schools that are *NOT* active 3 or more days per week
+cleaned_yrbss <- yrbss %>% filter(!is.na(physical_3plus))
+
+ci_not_active <- cleaned_yrbss %>% 
+  summarise(mean_pop = mean(physica_3plus_val, na.rm = TRUE),
+            sd_pop = sd(physica_3plus_val, na.rm = TRUE),
+            count_pop = n()) %>%
+  mutate(se_pop = sd_pop / sqrt(count_pop),
+         lower_ci = mean_pop - qt(1 - (0.05 / 2), count_pop - 1) * se_pop,
+         upper_ci = mean_pop + qt(1 - (0.05 / 2), count_pop - 1) * se_pop)
+
+ci_not_active
+
+```
+Is there a relationship between these two variables? What did you expect and why?
+
+```{r, boxplot}
+
+ggplot(cleaned_yrbss, aes(x=physical_3plus, y=weight)) +
+  geom_boxplot() +
+  labs(title = "",
+       x = "Physical 3 Plus",
+       y = "Weight") + 
+  NULL
+
+```
+The boxplot does not seem to show a marked weight difference between the high schoolers who are physically active more than 3 times a week and those who aren't. We conclude there is no significant correlation for this group of schoolers between the number of times they exercise per week and their weight. Although we were expecting to see a strong positive correlation indicating that the less one exercises the more their weight increases, there actually seems to be a slight negative correlation. This shows a tendency for regular exercisers to gain weight, which probably comes from muscle mass. However, we would need to conduct further research regarding this hypothesis. In summary, weight might not be a reliable predictor of how much a person exercises and how healthy they are. Other factors such as gender or sleeping hours could be worth studying.
+
+
+## Confidence Interval
+
+```{r}
+yrbss %>%
+  group_by(physical_3plus) %>%
+  filter(!is.na(physical_3plus)) %>% 
+  summarise(mean_weight = mean(weight, na.rm = TRUE),
+            sd_weight = sd(weight, na.rm=TRUE),
+            count = n(),
+            se_weight = sd_weight/sqrt(count),
+            t_critical = qt(0.975, count-1), 
+            margin_of_error = t_critical * se_weight,
+            lower = mean_weight - t_critical * se_weight,
+            upper = mean_weight + t_critical * se_weight
+            )
+
+```
+
+There is an observed difference of about 1.77kg (68.44 - 66.67), and we notice that the two confidence intervals do not overlap. It seems that the difference is at least 95% statistically significant. Let us also conduct a hypothesis test.
+
+## Hypothesis test with formula
+
+```{r}
+t.test(weight ~ physical_3plus, data = yrbss)
+```
+
+## Hypothesis test with `infer`
+
+
+```{r, test_initialization}
+obs_diff <- yrbss %>%
+  specify(weight ~ physical_3plus) %>%
+  calculate(stat = "diff in means", order = c("yes", "no"))
+
+```
+
+```{r}
+#test simulation from null distribution
+null_dist <- yrbss %>%
+  specify(weight ~ physical_3plus) %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "permute") %>%
+  calculate(stat = "diff in means", order = c("yes", "no"))
+
+#visualization of test distribution
+ggplot(data = null_dist, aes(x = stat)) +
+  geom_histogram()
+
+```
+
+There seems to be no null permutations that have a difference of at least `obs_stat`.
+
+```{r}
+#p-value calculation
+null_dist %>% visualize() +
+  shade_p_value(obs_stat = obs_diff, direction = "two-sided")
+
+null_dist %>%
+  get_p_value(obs_stat = obs_diff, direction = "two_sided")
+
+```
+
+
+Seeing as the p-value is below 5% at p=0, we conclude our null hypothesis can be rejected. This confirms our previous analysis that high-schooler weight and the number of times a high-schooler exercises are very likely to be unrelated.
