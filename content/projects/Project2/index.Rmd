@@ -1,0 +1,130 @@
+---
+title: 'IMDB ratings: Differences between directors'
+author: "Riccardo Persico"
+date: "18/10/2020"
+output: html_document
+---
+
+
+```{r, setup, echo=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE, 
+  warning = FALSE, 
+  tidy=FALSE,     # display code as typed
+  size="small")   # slightly smaller font for code
+options(digits = 3)
+
+# default figure size
+knitr::opts_chunk$set(
+  fig.width=6.75, 
+  fig.height=6.75,
+  fig.align = "center"
+)
+```
+
+
+```{r load-libraries, echo=FALSE}
+library(tidyverse)  # Load ggplot2, dplyr, and all the other tidyverse packages
+library(mosaic)
+library(ggthemes)
+library(GGally)
+library(readxl)
+library(here)
+library(skimr)
+library(janitor)
+library(broom)
+library(tidyquant)
+library(infer)
+library(openintro)
+library(tidyquant)
+library(reshape2)
+library(patchwork)
+library(scales)
+```
+
+
+
+Are the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not? Let's see...
+
+```{r load-movies-data}
+movies <- read_csv(here::here("data", "movies.csv"))
+glimpse(movies)
+```
+
+```{r, intervals_graph}
+
+summary_data <- movies %>% 
+  group_by(director) %>% 
+  filter(director %in% c("Steven Spielberg", "Tim Burton")) %>% 
+  summarise(mean = mean(rating, na.rm = TRUE),
+            sd = sd(rating, na.rm = TRUE),
+            count= n()) %>%
+  mutate(se = sd / sqrt(count),
+         lower_ci = mean - qt(1 - (0.05 / 2), count - 1) * se,
+         upper_ci = mean + qt(1 - (0.05 / 2), count - 1) * se)
+
+summary_data
+
+
+ggplot(summary_data, aes(x=mean, y=reorder(director, mean)))+
+  geom_point(aes(color = director, size = 3))+
+  geom_rect(aes(xmin=max(lower_ci), xmax=min(upper_ci), ymin = -Inf, ymax = +Inf ,alpha = .3))+
+  geom_errorbar(aes(xmin = lower_ci , xmax = upper_ci, width = 0.1, color = director, size = 1.5))+
+  labs(title = "Do Spielberg and Burton have the same IMDB ratings?", subtitle = "95% confidence intervals overlap", y = "", x = "Mean IMDB Rating")+
+  theme_bw()+
+   geom_label(aes(y=reorder(director,mean),x=lower_ci,
+                   label = round(lower_ci,2)),
+                hjust=0.4, vjust=-0.4, fill = NA, label.size = NA)+
+   geom_label(aes(y=reorder(director,mean),x=upper_ci,
+                   label = round(upper_ci,2)),
+                hjust=0.4, vjust=-0.4, fill = NA, label.size = NA)+
+  theme(legend.position = "none")+
+  geom_text(aes(label=round(mean,2), vjust =-2))
+ 
+
+
+
+```
+I have already calculated the confidence intervals for the mean ratings of these two directors and as you can see they overlap. 
+
+
+```{r, t_test}
+#NULL hypothesis : Steven Spielberg's mean IMDB rating = Tim Burton's mean IMDB rating
+
+movies <- movies %>% 
+  filter(director %in% c("Steven Spielberg", "Tim Burton")) %>% 
+  mutate(steven_tim_val = ifelse(director == "Steven Spielberg",1,0))
+
+#glimpsing the means of Tim Burton's ratings (mean in group 0) and Steven Spielberg's ratings (mean in group 1)
+
+t.test(rating ~ steven_tim_val, data = movies)
+  
+```
+The t-test results show that the mean rating for Tim Burton and Steven Spielberg are different, with Steven's rating being higher than Tim Burton's at 7.57 and 6.93 respectively. Although the confidence intervals overlap, we can see that p-value= 0.01 < 0.05 which confirms that the NULL hypothesis can be rejected.
+
+```{r, hypothesis_test}
+#getting Tim and Steven data only
+steven_tim <- movies %>% 
+  group_by(director) %>% 
+  filter(director %in% c("Steven Spielberg", "Tim Burton"))
+
+#assigning numerical values to Steven & Tim
+obs_diff <- movies %>%
+  specify(rating~director) %>%
+  calculate(stat = "diff in means", order = c("Steven Spielberg", "Tim Burton"))
+
+  
+null_dist <- movies %>%
+  specify(rating ~ director) %>%
+  hypothesize(null = "independence") %>%
+  generate(reps = 1000, type = "permute") %>%
+  calculate(stat = "diff in means", order = c("Steven Spielberg", "Tim Burton"))
+
+null_dist %>% visualize() +
+  shade_p_value(obs_stat = obs_diff, direction = "two-sided")
+
+null_dist %>%
+  get_p_value(obs_stat = obs_diff, direction = "two_sided")
+
+```
+Therefore, simulating from a null distribution with an infer package and t-test also show that the p-value is below 5%, indicating we can reject the null hypothesis. Tim Burton and Steven Spielberg are 95% unlikely to have the same mean IMDB rating.

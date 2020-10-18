@@ -90,21 +90,21 @@ disqusShortname = ""
     # Display your showcases here.
     
     [[params.tiles.showcase]]
-      title = "Project 1"
-      subtitle = "Ipsum Dolor Sit Amet"
-      image = "pic01.jpg"
+      title = "Youth Risk Behaviour Surveillance"
+      subtitle = "Studying the health patterns of high schoolers in the U.S."
+      image = "projects/pic01.jpg"
       url = "projects/Project1"
 
     [[params.tiles.showcase]]
-      title = "Project 2"
-      subtitle = "Feugiat Amet Tempus"
-      image = "pic02.jpg"
+      title = "IMDB ratings: Differences between directors"
+      subtitle = "Comparing the average IMBD ratings for the famous directors Spielberg and Burton"
+      image = "projects/pic02.jpg"
       url = "projects/Project2"
 
     [[params.tiles.showcase]]
-      title = "Project 3"
-      subtitle = "Lorem Etiam Nullam"
-      image = "pic03.jpg"
+      title = "Omega Group plc - Pay Discrimination"
+      subtitle = "Verifying wheather the difference in salary at Omega is due to gender discrimination"
+      image = "projects/pic03.jpg"
       url = "projects/Project3"
 
     [[params.tiles.showcase]]
