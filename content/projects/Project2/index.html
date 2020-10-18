@@ -8,7 +8,10 @@ output: html_document
 <script src="index_files/header-attrs/header-attrs.js"></script>
 
 
-<p>Are the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not? Let’s see…</p>
+<div id="are-the-mean-imdb-rating-for-steven-spielberg-and-tim-burton-are-the-same-or-not-lets-see" class="section level1">
+<h1>Are the mean IMDB rating for Steven Spielberg and Tim Burton are the same or not? Let’s see…</h1>
+<div id="loading-the-data" class="section level2">
+<h2>Loading the data</h2>
 <pre class="r"><code>movies &lt;- read_csv(here::here(&quot;data&quot;, &quot;movies.csv&quot;))
 glimpse(movies)</code></pre>
 <pre><code>## Rows: 2,961
@@ -24,6 +27,9 @@ glimpse(movies)</code></pre>
 ## $ votes               &lt;dbl&gt; 886204, 793059, 418214, 995415, 1676169, 534658...
 ## $ reviews             &lt;dbl&gt; 3777, 2843, 1934, 2425, 5312, 3917, 1752, 1752,...
 ## $ rating              &lt;dbl&gt; 7.9, 7.7, 7.0, 8.1, 9.0, 6.5, 8.7, 7.5, 8.5, 7....</code></pre>
+</div>
+<div id="summarizing-it-and-plotting-it" class="section level2">
+<h2>Summarizing it and plotting it</h2>
 <pre class="r"><code>summary_data &lt;- movies %&gt;% 
   group_by(director) %&gt;% 
   filter(director %in% c(&quot;Steven Spielberg&quot;, &quot;Tim Burton&quot;)) %&gt;% 
@@ -56,6 +62,9 @@ summary_data</code></pre>
   geom_text(aes(label=round(mean,2), vjust =-2))</code></pre>
 <p><img src="index_files/figure-html/intervals_graph-1.png" width="648" style="display: block; margin: auto;" />
 I have already calculated the confidence intervals for the mean ratings of these two directors and as you can see they overlap.</p>
+</div>
+<div id="running-the-hypotesis-tests" class="section level2">
+<h2>Running the hypotesis tests</h2>
 <pre class="r"><code>#NULL hypothesis : Steven Spielberg&#39;s mean IMDB rating = Tim Burton&#39;s mean IMDB rating
 
 movies &lt;- movies %&gt;% 
@@ -102,5 +111,7 @@ null_dist %&gt;% visualize() +
 <pre><code>## # A tibble: 1 x 1
 ##   p_value
 ##     &lt;dbl&gt;
-## 1   0.016</code></pre>
+## 1   0.012</code></pre>
 <p>Therefore, simulating from a null distribution with an infer package and t-test also show that the p-value is below 5%, indicating we can reject the null hypothesis. Tim Burton and Steven Spielberg are 95% unlikely to have the same mean IMDB rating.</p>
+</div>
+</div>
