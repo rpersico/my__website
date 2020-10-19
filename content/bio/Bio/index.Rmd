@@ -17,5 +17,5 @@ I did an *internship* at GS in the securities division in my first year and one 
 
 Please see my CV below
   
-![CV](img/cv.jpg)
+![](/img/Bio/cv.jpg)
 
