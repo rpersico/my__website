@@ -43,14 +43,13 @@ library(ggrepel)
 
 ```{r, trump_approval_margins_data, cache=TRUE}
 # Import approval polls data
+
 approval_polllist <- read_csv(here::here('data', 'approval_polllist.csv'))
 
 # or directly off fivethirtyeight website
 # approval_polllist <- read_csv('https://projects.fivethirtyeight.com/trump-approval-data/approval_polllist.csv') 
 
 glimpse(approval_polllist)
-
-# Use `lubridate` to fix dates, as they are given as characters.
 ```
 
 ```{r, converting_to_dates}
@@ -69,14 +68,10 @@ approval_polllist_converted
 
 Calculating the average net approval rate (approve- disapprove) for each week since President Trump got into office.
 
-Image to plot:
-
-```{r trump_margins, echo=FALSE, out.width="100%"}
-knitr::include_graphics(here::here("images", "trump_approval_margin.png"), error = FALSE)
-```
-
 ```{r, trump_margins_weekly}
-    
+
+# Summarizing the data
+
 weekly_net_approval <- approval_polllist_converted %>% filter(subgroup == "Voters") %>% 
   mutate(net_approval = approve - disapprove,
          week = isoweek(enddate),
@@ -97,6 +92,8 @@ weekly_net_approval
 
 
 ```{r, trump_margins_plot, fig.width=11,fig.height=5.5}
+
+# Plotting the data
 
 ggplot(weekly_net_approval, aes(x = week, y = mean_weekly_nar, colour=factor(year))) + 
   facet_wrap(~year) +

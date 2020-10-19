@@ -11,6 +11,7 @@ output: html_document
 <div id="loading-the-data" class="section level2">
 <h2>Loading the data</h2>
 <pre class="r"><code># Import approval polls data
+
 approval_polllist &lt;- read_csv(here::here(&#39;data&#39;, &#39;approval_polllist.csv&#39;))
 
 # or directly off fivethirtyeight website
@@ -41,7 +42,6 @@ glimpse(approval_polllist)</code></pre>
 ## $ question_id         &lt;dbl&gt; 77265, 77261, 77599, 77274, 77598, 77278, 77272...
 ## $ createddate         &lt;chr&gt; &quot;1/23/2017&quot;, &quot;1/23/2017&quot;, &quot;3/1/2017&quot;, &quot;1/24/201...
 ## $ timestamp           &lt;chr&gt; &quot;00:45:20 27 Sep 2020&quot;, &quot;00:45:20 27 Sep 2020&quot;,...</code></pre>
-<pre class="r"><code># Use `lubridate` to fix dates, as they are given as characters.</code></pre>
 <pre class="r"><code># Use `lubridate` to fix dates, as they are given as characters.
 
 library(lubridate)
@@ -73,9 +73,9 @@ approval_polllist_converted</code></pre>
 <div id="create-a-plot" class="section level2">
 <h2>Create a plot</h2>
 <p>Calculating the average net approval rate (approve- disapprove) for each week since President Trump got into office.</p>
-<p>Image to plot:</p>
-<p><img src="C:/Users/Riccardo/Data/Riccardo/LBS/Data Analytics/my__website/images/trump_approval_margin.png" width="100%" style="display: block; margin: auto;" /></p>
-<pre class="r"><code>weekly_net_approval &lt;- approval_polllist_converted %&gt;% filter(subgroup == &quot;Voters&quot;) %&gt;% 
+<pre class="r"><code># Summarizing the data
+
+weekly_net_approval &lt;- approval_polllist_converted %&gt;% filter(subgroup == &quot;Voters&quot;) %&gt;% 
   mutate(net_approval = approve - disapprove,
          week = isoweek(enddate),
          year = year(enddate)) %&gt;%
@@ -107,7 +107,9 @@ weekly_net_approval</code></pre>
 ## 10  2017    13          -9.89           3.94               25           2.06
 ## # ... with 182 more rows, and 4 more variables: se_weekly_nar &lt;dbl&gt;,
 ## #   interval_value &lt;dbl&gt;, low_ci &lt;dbl&gt;, high_ci &lt;dbl&gt;</code></pre>
-<pre class="r"><code>ggplot(weekly_net_approval, aes(x = week, y = mean_weekly_nar, colour=factor(year))) + 
+<pre class="r"><code># Plotting the data
+
+ggplot(weekly_net_approval, aes(x = week, y = mean_weekly_nar, colour=factor(year))) + 
   facet_wrap(~year) +
   geom_ribbon(aes(ymin = low_ci, ymax = high_ci, colour=factor(year), fill=factor(year)), alpha=0.15) +
   scale_x_continuous(breaks = seq(0,53, by = 13), limits = c(0,53)) +
